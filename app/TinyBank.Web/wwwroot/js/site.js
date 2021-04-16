@@ -58,6 +58,7 @@ $('.js-card-checkout-cardNumber-pay').on('click',
         });
 
 
+        ActivateDeactivateForm("js-card-checkout-form", true);
 
         // ajax call
         let result = $.ajax({
@@ -72,5 +73,10 @@ $('.js-card-checkout-cardNumber-pay').on('click',
         }).fail(failure => {
             console.log('Update failed');
             alertRejected.show();
-        }).always(() => { });
+        }).always(() => { ActivateDeactivateForm("js-card-checkout-form", false); });
     });
+
+function ActivateDeactivateForm(formId, enable) {
+    if (!formId) return;
+    $(`#${formId} :input`).prop("disabled", enable);
+}
