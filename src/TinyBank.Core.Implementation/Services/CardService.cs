@@ -92,12 +92,13 @@ namespace TinyBank.Core.Implementation.Services
 
             var account = cardResult.Data.Accounts[0];
             account.Balance -= paymentInfo.Amount;
+            account.AuditInfo.Updated = DateTime.Now;
 
-            _dbContext.Add(account);
+            _dbContext.Update(account);
             try {
                 _dbContext.SaveChanges();
             }
-            catch (Exception) {
+            catch (Exception ex) {
                 return ApiResult<PaymentInfo>.CreateFailed(Constants.ApiResultCode.InternalServerError, "Could not handle payment");
             }
 
