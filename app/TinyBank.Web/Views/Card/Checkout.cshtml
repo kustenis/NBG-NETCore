@@ -1,0 +1,42 @@
+﻿@model CardPayment
+
+@{
+    ViewData["Title"] = "Checkout";
+}
+<div class="text-center">
+    <h1 class="display-4">Checkout</h1>
+</div>
+
+<div class="search-form">
+
+    <form>
+        <div>
+            <label>CardNumber:</label>
+            <input class="form-control js-card-checkout-cardNumber"
+                   name="cardNumber"
+                   value="@Model.CardNumber" />
+        </div>
+        <div>
+            <label>Expiration Month:</label>
+            <input class="form-control js-card-checkout-expirationMonth"
+                   name="expirationMonth"
+                   value="@Model.ExpirationMonth" />
+        </div>
+        <div>
+            <label>ExpirationYear :</label>
+            <input class="form-control js-card-checkout-expirationYear"
+                   name="expirationYear"
+                   value="@Model.ExpirationYear" />
+        </div>
+        <div>
+            <label>Amount:</label>
+            <input class="form-control js-card-checkout-amount"
+                   name="amount"
+                   value="@Model.Amount" />
+        </div>        
+
+        <button type="button" class="btn btn-primary js-card-checkout-cardNumber-pay">
+            Pay
+        </button>
+    </form>
+</div>
