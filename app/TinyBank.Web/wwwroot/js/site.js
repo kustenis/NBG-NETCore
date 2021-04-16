@@ -40,6 +40,11 @@ $('.js-customers-list tbody tr').on('click',
 $('.js-card-checkout-cardNumber-pay').on('click',
     (event) => {
         debugger;
+
+        let alertSuccess = $('#js-card-checkout-success').hide();
+        let alertRejected = $('#js-card-checkout-error').hide();
+        let checkoutForm = $('#js-card-checkout-form');
+
         let cardNumber = $('.js-card-checkout-cardNumber').val();
         let expirationMonth = $('.js-card-checkout-expirationMonth').val();
         let expirationYear = $('.js-card-checkout-expirationYear').val();
@@ -52,6 +57,8 @@ $('.js-card-checkout-cardNumber-pay').on('click',
             amount: amount
         });
 
+
+
         // ajax call
         let result = $.ajax({
             url: '/card/checkout',
@@ -60,7 +67,10 @@ $('.js-card-checkout-cardNumber-pay').on('click',
             data: data
         }).done(response => {
             console.log('Update was successful');
+            checkoutForm.hide();
+            alertSuccess.show();
         }).fail(failure => {
             console.log('Update failed');
+            alertRejected.show();
         }).always(() => { });
     });

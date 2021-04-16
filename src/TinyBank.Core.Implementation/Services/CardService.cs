@@ -10,21 +10,10 @@ namespace TinyBank.Core.Implementation.Services
 {
     public class CardService : ICardService
     {
-        private readonly ICardService _cardService;
-        private readonly IAccountService _accountService;
-        private readonly ICustomerService _customerService;
-        private readonly Data.TinyBankDbContext _dbContext;
-        
+        private readonly Data.TinyBankDbContext _dbContext;        
 
-        public CardService(
-            ICardService cardService,
-            IAccountService accountService,
-            ICustomerService customerService,
-            Data.TinyBankDbContext dbContext)
+        public CardService(Data.TinyBankDbContext dbContext)
         {
-            _cardService = cardService;
-            _accountService = accountService;
-            _customerService = customerService;
             _dbContext = dbContext;
         } 
 
@@ -93,27 +82,26 @@ namespace TinyBank.Core.Implementation.Services
             var validationResult = ValidatePaymentInfo(paymentInfo);
             if (validationResult != null) return validationResult;
 
-            var cardResult = _cardService.GetByNumber(paymentInfo.CardNumber);
-            if (cardResult == null) {
+            var cardResult = GetByNumber(paymentInfo.CardNumber);
+            if (cardResult?.Data == null) {
                 return ApiResult<PaymentInfo>.CreateFailed(Constants.ApiResultCode.BadRequest, "Card not found");
             }
 
             var validationPaymetResult = ValidatePayment(paymentInfo, cardResult.Data);
             if (validationPaymetResult != null) return validationPaymetResult;
 
-            //cardInfo.CardId = Guid.NewGuid();
-            //_dbContext.Add(cardInfo);
+            var account = cardResult.Data.Accounts[0];
+            account.Balance -= paymentInfo.Amount;
 
-            //try {
-            //    _dbContext.SaveChanges();
-            //}
-            //catch (Exception) {
-            //    return ApiResult<Card>.CreateFailed(Constants.ApiResultCode.InternalServerError, "Could not save card");
-            //}
+            _dbContext.Add(account);
+            try {
+                _dbContext.SaveChanges();
+            }
+            catch (Exception) {
+                return ApiResult<PaymentInfo>.CreateFailed(Constants.ApiResultCode.InternalServerError, "Could not handle payment");
+            }
 
-            //return ApiResult<Card>.CreateSuccessful(cardInfo);
-
-            return null;
+            return ApiResult<PaymentInfo>.CreateSuccessful(paymentInfo);
         }
 
 
@@ -157,7 +145,7 @@ namespace TinyBank.Core.Implementation.Services
                 return ApiResult<PaymentInfo>.CreateFailed(Constants.ApiResultCode.BadRequest, "Expired Card");
             }
 
-            var isAmountInvalid = (paymentInfo.Amount > 0);
+            var isAmountInvalid = !(paymentInfo.Amount > 0);
             if (isAmountInvalid) {
                 return ApiResult<PaymentInfo>.CreateFailed(Constants.ApiResultCode.BadRequest, "Invalid Amount");
             }
@@ -179,27 +167,19 @@ namespace TinyBank.Core.Implementation.Services
                 return ApiResult<PaymentInfo>.CreateFailed(Constants.ApiResultCode.InternalServerError, $"Null {nameof(card.Accounts)}");
             }
 
-
-
-
-            paymentInfo.CardNumber = paymentInfo.CardNumber?.Trim();
-            if (!ValidateCardNumber(paymentInfo.CardNumber)) {
-                return ApiResult<PaymentInfo>.CreateFailed(Constants.ApiResultCode.BadRequest, $"Invalid {nameof(paymentInfo.CardNumber)}");
+            if(!card.Active) {
+                return ApiResult<PaymentInfo>.CreateFailed(Constants.ApiResultCode.BadRequest, $"Inactive Card");
             }
 
-            var isExpirationMonthValid = paymentInfo.ExpirationMonth >= 1 && paymentInfo.ExpirationMonth <= 12;
-            if (!isExpirationMonthValid) {
-                return ApiResult<PaymentInfo>.CreateFailed(Constants.ApiResultCode.BadRequest, $"Invalid {nameof(paymentInfo.ExpirationMonth)}");
+            var expirationDateMissMatch = paymentInfo.ExpirationMonth != card.Expiration.Month && paymentInfo.ExpirationYear != card.Expiration.Year;
+            if (expirationDateMissMatch) {
+                return ApiResult<PaymentInfo>.CreateFailed(Constants.ApiResultCode.BadRequest, $"Inactive Card Info");
             }
 
-            var isExpirationYearValid = paymentInfo.ExpirationYear >= 1900 && paymentInfo.ExpirationYear <= 9999;
-            if (!isExpirationYearValid) {
-                return ApiResult<PaymentInfo>.CreateFailed(Constants.ApiResultCode.BadRequest, $"Invalid {nameof(paymentInfo.ExpirationYear)}");
-            }
-
-            var isCardExpired = DateTime.Today >= new DateTime(year: paymentInfo.ExpirationYear, month: paymentInfo.ExpirationMonth, 1);
-            if (isCardExpired) {
-                return ApiResult<PaymentInfo>.CreateFailed(Constants.ApiResultCode.BadRequest, "Expired Card");
+            var availableBalance = card.Accounts[0].Balance;
+            var insufficientBalance = availableBalance < paymentInfo.Amount;
+            if (insufficientBalance) {
+                return ApiResult<PaymentInfo>.CreateFailed(Constants.ApiResultCode.BadRequest, $"Insufficient Balance");
             }
             return null;
         }

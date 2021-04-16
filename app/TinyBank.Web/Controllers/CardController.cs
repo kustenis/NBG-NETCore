@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using TinyBank.Core.Implementation.Data;
+using TinyBank.Core.Model;
 using TinyBank.Core.Services;
+using TinyBank.Web.Extensions;
 using TinyBank.Web.Models;
 
 namespace TinyBank.Web.Controllers
@@ -33,7 +35,19 @@ namespace TinyBank.Web.Controllers
         [HttpPost("checkout")]
         public IActionResult Checkout([FromBody] CardPayment payment)
         {
-            return Ok(payment);
+            var paymentInfo = new PaymentInfo {
+                CardNumber = payment?.CardNumber,
+                ExpirationMonth = payment?.ExpirationMonth ?? 0,
+                ExpirationYear = payment?.ExpirationYear ?? 0,
+                Amount = payment?.Amount ?? 0
+            };
+            var result = _cardService.Payment(paymentInfo);
+
+            if (!result.IsSuccessful()) {
+                return result.ToActionResult();
+            }
+
+            return Ok();
         }
     }
 }
